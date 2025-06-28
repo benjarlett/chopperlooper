@@ -1,0 +1,200 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chopper Looper Test</title>
+    <style>
+        body { font-family: sans-serif; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .control-group { border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
+        .full-width { grid-column: 1 / -1; }
+        #vu-meter { width: 100%; height: 20px; background: #eee; }
+        #vu-meter-fill { height: 100%; background: green; }
+        #beat-display { display: flex; margin-top: 10px; }
+        .beat-square { width: 20px; height: 20px; border: 1px solid #ccc; margin: 2px; background-color: #eee; }
+        .beat-square.active { background-color: dodgerblue; }
+    </style>
+</head>
+<body>
+    <div class="control-group full-width">
+        <h2>Channel 1 (Master Loop)</h2>
+        <div id="bpm-display">BPM: 120.00</div>
+        <button id="tap-tempo">Tap Tempo</button>
+        <button id="restart-loop">Restart Loop</button>
+        
+        <label for="loop-beats">Loop Beats:</label>
+        <input type="number" id="loop-beats" value="8" min="1">
+        <label for="loop-bars">Loop Bars:</label>
+        <select id="loop-bars"></select>
+
+        <label for="tap-reset-threshold">Tap Reset Threshold:</label>
+        <input type="number" id="tap-reset-threshold" value="100" min="0" max="127">
+        <div id="beat-display"></div>
+        <button id="play">Play Loop</button>
+        <button id="stop">Stop Loop</button>
+    </div>
+
+    <div class="control-group">
+        <h2>Audio</h2>
+        <label for="audio-device">Output Device:</label>
+        <select id="audio-device"></select>
+        <button id="start-engine">Start Engine</button>
+        <button id="stop-engine">Stop Engine</button>
+        <div id="vu-meter"><div id="vu-meter-fill"></div></div>
+    </div>
+
+    <div class="control-group">
+        <h2>MIDI</h2>
+        <label for="midi-device">Input Device:</label>
+        <select id="midi-device"></select>
+        <pre id="midi-log"></pre>
+    </div>
+
+    <script>
+        const audioDeviceSelect = document.getElementById('audio-device');
+        const midiDeviceSelect = document.getElementById('midi-device');
+        const startEngineBtn = document.getElementById('start-engine');
+        const stopEngineBtn = document.getElementById('stop-engine');
+        const playBtn = document.getElementById('play');
+        const stopBtn = document.getElementById('stop');
+        const midiLog = document.getElementById('midi-log');
+        const vuMeterFill = document.getElementById('vu-meter-fill');
+        const bpmDisplay = document.getElementById('bpm-display');
+        const tapTempoBtn = document.getElementById('tap-tempo');
+        const restartLoopBtn = document.getElementById('restart-loop');
+        const loopBarsInput = document.getElementById('loop-bars');
+        const loopBeatsInput = document.getElementById('loop-beats');
+        const tapResetThresholdInput = document.getElementById('tap-reset-threshold');
+        const beatDisplay = document.getElementById('beat-display');
+
+        function getDivisors(n) {
+            const divisors = [];
+            for (let i = 1; i <= n; i++) {
+                if (n % i === 0) {
+                    divisors.push(i);
+                }
+            }
+            return divisors;
+        }
+
+        function updateLoopBarsOptions(currentLoopBeats, currentLoopBars) {
+            const divisors = getDivisors(currentLoopBeats);
+            loopBarsInput.innerHTML = ''; // Clear existing options
+            divisors.forEach(divisor => {
+                const option = new Option(divisor, divisor);
+                loopBarsInput.add(option);
+            });
+            // Try to re-select the current loop bars, or default to the largest divisor
+            if (divisors.includes(currentLoopBars)) {
+                loopBarsInput.value = currentLoopBars;
+            } else if (divisors.length > 0) {
+                loopBarsInput.value = divisors[divisors.length - 1];
+            }
+        }
+
+        // Populate device lists on load
+        fetch('/devices').then(r => r.json()).then(devices => {
+            devices.audio.forEach(device => {
+                const option = new Option(device.name, device.id);
+                audioDeviceSelect.add(option);
+            });
+            if (devices.audio.length > 0) {
+                audioDeviceSelect.value = devices.audio[0].id;
+            }
+            devices.midi.forEach(device => {
+                const option = new Option(device, device);
+                midiDeviceSelect.add(option);
+            });
+            if (devices.midi.length > 0) {
+                midiDeviceSelect.value = devices.midi[0];
+            }
+        });
+
+        // Fetch and set initial loop metadata
+        fetch('/get_loop_metadata').then(r => r.json()).then(data => {
+            console.log("Fetched loop metadata:", data); // Debugging
+            loopBeatsInput.value = data.beats;
+            loopBarsInput.value = data.bars; // Set value before updating options
+            updateLoopBarsOptions(parseInt(loopBeatsInput.value), parseInt(loopBarsInput.value));
+        });
+
+        // Set initial tap reset threshold
+        fetch('/get_tap_reset_threshold').then(r => r.json()).then(data => {
+            tapResetThresholdInput.value = data.threshold;
+        });
+
+        // Event Listeners
+        startEngineBtn.addEventListener('click', () => fetch('/start_engine', { method: 'POST' }));
+        stopEngineBtn.addEventListener('click', () => fetch('/stop_engine', { method: 'POST' }));
+        playBtn.addEventListener('click', () => fetch('/play', { method: 'POST' }));
+        stopBtn.addEventListener('click', () => fetch('/stop', { method: 'POST' }));
+        tapTempoBtn.addEventListener('click', () => fetch('/tap', { method: 'POST' }));
+        restartLoopBtn.addEventListener('click', () => fetch('/restart_loop', { method: 'POST' }));
+
+        loopBarsInput.addEventListener('change', () => {
+            fetch('/set_loop_bars', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bars: loopBarsInput.value })
+            });
+        });
+
+        loopBeatsInput.addEventListener('change', () => {
+            updateLoopBarsOptions(parseInt(loopBeatsInput.value), parseInt(loopBarsInput.value));
+            // Also send update to backend
+            fetch('/set_loop_beats', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ beats: loopBeatsInput.value })
+            });
+        });
+
+        tapResetThresholdInput.addEventListener('change', () => {
+            fetch('/set_tap_reset_threshold', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ threshold: tapResetThresholdInput.value })
+            });
+        });
+
+        audioDeviceSelect.addEventListener('change', () => {
+            fetch('/select_devices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audio_device: audioDeviceSelect.value })
+            });
+        });
+
+        midiDeviceSelect.addEventListener('change', () => {
+            fetch('/select_devices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ midi_device: midiDeviceSelect.value })
+            });
+        });
+
+
+        // SSE for real-time updates
+        const eventSource = new EventSource('/stream');
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.midi) {
+                midiLog.textContent = data.midi;
+            }
+            bpmDisplay.textContent = `BPM: ${data.bpm}`;
+            vuMeterFill.style.width = data.vu + '%';
+
+            // Update beat display
+            beatDisplay.innerHTML = ''; // Clear previous squares
+            for (let i = 1; i <= data.beats_per_bar; i++) {
+                const beatSquare = document.createElement('div');
+                beatSquare.classList.add('beat-square');
+                if (i === data.current_beat) {
+                    beatSquare.classList.add('active');
+                }
+                beatDisplay.appendChild(beatSquare);
+            }
+        };
+    </script>
+</body>
+</html>
