@@ -24,6 +24,7 @@ try:
     loop_beats = metadata.get('beats', 8)
     loop_bars = metadata.get('bars', 2)
     logging.info(f"Audio module initialized with loop_beats={loop_beats}, loop_bars={loop_bars}")
+    print(f"DEBUG: src/audio.py - After JSON load: loop_beats={loop_beats}, loop_bars={loop_bars}")
 except Exception as e:
     logging.error(f"Error loading loop metadata on import: {e}")
     # Set default values if loading fails

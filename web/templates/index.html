@@ -1,52 +1,190 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Chopper Looper Test</title>
     <style>
-        body { font-family: sans-serif; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .control-group { border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
-        .full-width { grid-column: 1 / -1; }
-        #vu-meter { width: 100%; height: 20px; background: #eee; }
-        #vu-meter-fill { height: 100%; background: green; }
-        #beat-display { display: flex; margin-top: 10px; }
-        .beat-square { width: 20px; height: 20px; border: 1px solid #ccc; margin: 2px; background-color: #eee; }
-        .beat-square.active { background-color: dodgerblue; }
+        @import url("https://fonts.googleapis.com/css2?family=Reggae+One&display=swap");
+html,body{height: 100%;}
+        body {
+            font-family: "Reggae One", cursive;
+            background: linear-gradient(to bottom, #ff0000, #ffcc00, #00cc00);
+            color: #000;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        header {
+            background: #ff0000;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 1.5rem;
+        }
+
+        .control-group {
+            border: 3px solid #000;
+            background: rgba(255, 255, 255, 0.7);
+            margin: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .control-section {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .control-section>div {
+            margin-right: 20px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        #vu-meter {
+            width: 100%;
+            height: 20px;
+            background: #eee;
+        }
+
+        #vu-meter-fill {
+            height: 100%;
+            background: green;
+        }
+
+        #beat-display {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        .beat-square {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            margin: 2px;
+            background-color: #eee;
+        }
+
+        .beat-square.active {
+            background-color: dodgerblue;
+        }
+
+        .beat-square.flash {
+            background-color: orange;
+        }
+
+        label {
+            margin-right: 0;
+        }
+
+        button {
+            margin-right: .5ch;
+        }
+
+        select {
+            margin-right: .5ch;
+        }
+
+        input[type="checkbox" i] {
+            margin: 0;
+            padding: 0;
+            height: 1.5rem;
+            width: 1.5rem;
+            position: relative;
+            top: 6px;
+        }
+
+        .btn.big {
+            font-size: 1.25rem;
+        }
     </style>
 </head>
+
 <body>
     <div class="control-group full-width">
         <h2>Channel 1 (Master Loop)</h2>
-        <div id="bpm-display">BPM: 120.00</div>
-        <button id="tap-tempo">Tap Tempo</button>
-        <button id="restart-loop">Restart Loop</button>
-        
-        <label for="loop-beats">Loop Beats:</label>
-        <input type="number" id="loop-beats" value="8" min="1">
-        <label for="loop-bars">Loop Bars:</label>
-        <select id="loop-bars"></select>
+        <div class="control-section">
+            <div><label for="channel1-volume">Volume:</label>
+                <input type="range" id="channel1-volume" min="0" max="127" value="100">
+            </div>
+            <div><label for="channel1-pan">Pan:</label>
+                <input type="range" id="channel1-pan" min="-64" max="64" value="0">
+            </div>
+            <div><label for="channel1-reverb">Reverb:</label>
+                <input type="range" id="channel1-reverb" min="0" max="127" value="0">
+            </div>
+        </div>
 
-        <label for="tap-reset-threshold">Tap Reset Threshold:</label>
-        <input type="number" id="tap-reset-threshold" value="100" min="0" max="127">
+        <div class="control-section">
+            <div>
+                <div id="bpm-display">BPM: 120.00</div>
+            </div>
+            <div><button id="tap-tempo" class="btn big">Tap Tempo</button></div>
+            <div><button id="restart-loop" class="btn big">Restart Loop</button></div>
+        </div>
+        <div class="control-section">
+            <div><label for="tap-reset-threshold">Tap Reset Threshold:</label>
+                <input type="number" id="tap-reset-threshold" value="100" min="0" max="127">
+            </div>
+        </div>
+        <div class="control-section">
+            <div><label for="loop-beats">Loop Beats:</label>
+                <input type="number" id="loop-beats" value="8" min="1">
+            </div>
+            <div><label for="loop-bars">Loop Bars:</label>
+                <select id="loop-bars"></select>
+            </div>
+        </div>
         <div id="beat-display"></div>
-        <button id="play">Play Loop</button>
-        <button id="stop">Stop Loop</button>
+        <div class="control-section">
+
+            <div><button id="play" class="btn big">Play Loop</button>
+                <button id="stop" class="btn big">Stop Loop</button>
+            </div>
+            <div><label for="channel1-solo">Solo:</label>
+                <input type="checkbox" id="channel1-solo">
+            </div>
+            <div><label for="channel1-mute">Mute:</label>
+                <input type="checkbox" id="channel1-mute">
+            </div>
+
+        </div>
     </div>
 
     <div class="control-group">
         <h2>Audio</h2>
+
         <label for="audio-device">Output Device:</label>
         <select id="audio-device"></select>
         <button id="start-engine">Start Engine</button>
         <button id="stop-engine">Stop Engine</button>
-        <div id="vu-meter"><div id="vu-meter-fill"></div></div>
+        <div id="vu-meter">
+            <div id="vu-meter-fill"></div>
+        </div>
     </div>
 
     <div class="control-group">
         <h2>MIDI</h2>
-        <label for="midi-device">Input Device:</label>
-        <select id="midi-device"></select>
+
+        <div class="control-section">
+            <div><label for="midi-device">Input Device:</label>
+                <select id="midi-device"></select>
+            </div>
+        </div>
         <pre id="midi-log"></pre>
     </div>
 
@@ -67,6 +205,13 @@
         const tapResetThresholdInput = document.getElementById('tap-reset-threshold');
         const beatDisplay = document.getElementById('beat-display');
 
+        // New controls
+        const channel1Volume = document.getElementById('channel1-volume');
+        const channel1Pan = document.getElementById('channel1-pan');
+        const channel1Reverb = document.getElementById('channel1-reverb');
+        const channel1Solo = document.getElementById('channel1-solo');
+        const channel1Mute = document.getElementById('channel1-mute');
+
         function getDivisors(n) {
             const divisors = [];
             for (let i = 1; i <= n; i++) {
@@ -86,9 +231,9 @@
             });
             // Try to re-select the current loop bars, or default to the largest divisor
             if (divisors.includes(currentLoopBars)) {
-                loopBarsInput.value = currentLoopBars;
+                loopBarsInput.value = String(currentLoopBars);
             } else if (divisors.length > 0) {
-                loopBarsInput.value = divisors[divisors.length - 1];
+                loopBarsInput.value = String(divisors[divisors.length - 1]);
             }
         }
 
@@ -173,10 +318,17 @@
             });
         });
 
+        // New control event listeners (placeholders for now)
+        channel1Volume.addEventListener('input', () => console.log('Volume:', channel1Volume.value));
+        channel1Pan.addEventListener('input', () => console.log('Pan:', channel1Pan.value));
+        channel1Reverb.addEventListener('input', () => console.log('Reverb:', channel1Reverb.value));
+        channel1Solo.addEventListener('change', () => console.log('Solo:', channel1Solo.checked));
+        channel1Mute.addEventListener('change', () => console.log('Mute:', channel1Mute.checked));
+
 
         // SSE for real-time updates
         const eventSource = new EventSource('/stream');
-        eventSource.onmessage = function(event) {
+        eventSource.onmessage = function (event) {
             const data = JSON.parse(event.data);
             if (data.midi) {
                 midiLog.textContent = data.midi;
@@ -191,10 +343,17 @@
                 beatSquare.classList.add('beat-square');
                 if (i === data.current_beat) {
                     beatSquare.classList.add('active');
+                    if (data.loop_just_started && i === 1) {
+                        beatSquare.classList.add('flash');
+                        setTimeout(() => {
+                            beatSquare.classList.remove('flash');
+                        }, 200); // Flash for 200ms
+                    }
                 }
                 beatDisplay.appendChild(beatSquare);
             }
         };
     </script>
 </body>
+
 </html>

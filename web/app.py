@@ -1,5 +1,3 @@
-
-
 import queue
 import threading
 import time
@@ -18,6 +16,7 @@ app = Flask(__name__, template_folder='templates')
 # --- Globals ---
 global_clock = GlobalClock()
 sse_queue = queue.Queue()
+loop_just_started = False # Initialize global flag
 
 
 # --- Flask Routes ---
@@ -39,6 +38,8 @@ def stop_engine():
 
 @app.route('/play', methods=['POST'])
 def play():
+    global loop_just_started
+    loop_just_started = True
     return audio.play_loop(global_clock)
 
 @app.route('/stop', methods=['POST'])
@@ -47,6 +48,8 @@ def stop():
 
 @app.route('/restart_loop', methods=['POST'])
 def restart_loop():
+    global loop_just_started
+    loop_just_started = True
     audio.play_loop(global_clock) # This function already resets play_position to 0
     global_clock.current_beat = 1 # Explicitly reset current beat
     global_clock.tap(velocity=global_clock.tap_reset_velocity_threshold) # Simulate a high velocity tap to re-arm
@@ -107,6 +110,7 @@ def get_tap_reset_threshold():
 
 @app.route('/get_loop_metadata')
 def get_loop_metadata():
+    print(f"DEBUG: web/app.py - Before sending metadata: beats={audio.loop_beats}, bars={audio.loop_bars}")
     return jsonify({'beats': audio.loop_beats, 'bars': audio.loop_bars})
 
 @app.route('/select_devices', methods=['POST'])
@@ -121,13 +125,17 @@ def select_devices():
 @app.route('/stream')
 def stream():
     def event_stream():
+        global loop_just_started # Declare loop_just_started as global
         while True:
             data_packet = {
                 'bpm': f'{global_clock.bpm:.2f}',
                 'vu': audio.get_vu_level(),
                 'current_beat': global_clock.current_beat,
-                'beats_per_bar': global_clock.get_beats_per_bar()
+                'beats_per_bar': global_clock.get_beats_per_bar(),
+                'loop_just_started': loop_just_started # Include the flag
             }
+            if loop_just_started:
+                loop_just_started = False # Reset after sending once
             try:
                 midi_message = sse_queue.get_nowait()
                 data_packet['midi'] = midi_message
